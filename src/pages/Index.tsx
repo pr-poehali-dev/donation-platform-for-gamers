@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
 import DonationAlert from '@/components/DonationAlert';
 import PaymentModal from '@/components/PaymentModal';
+import SoundSettings from '@/components/SoundSettings';
 
 const Index = () => {
   const [donationAmount, setDonationAmount] = useState('');
@@ -18,6 +19,8 @@ const Index = () => {
     { user: 'StreamFan', amount: 1000, message: 'Лучший контент! 🎮', platform: 'youtube' },
     { user: 'NeonWarrior', amount: 250, message: 'Респект! ⚡', platform: 'twitch' },
   ]);
+  const [donationSoundUrl, setDonationSoundUrl] = useState('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+  const [soundVolume, setSoundVolume] = useState(70);
 
   const donationTiers = [
     {
@@ -44,6 +47,11 @@ const Index = () => {
   ];
 
   const handlePaymentComplete = (data: { user: string; amount: number; message: string }) => {
+    if (donationSoundUrl) {
+      const audio = new Audio(donationSoundUrl);
+      audio.volume = soundVolume / 100;
+      audio.play().catch(() => console.log('Не удалось воспроизвести звук'));
+    }
     setCurrentAlert(data);
     setDonations(prev => [{ ...data, platform: 'card' }, ...prev].slice(0, 10));
   };
@@ -84,7 +92,7 @@ const Index = () => {
         </header>
 
         <Tabs defaultValue="donate" className="max-w-6xl mx-auto mb-16">
-          <TabsList className="grid w-full grid-cols-3 bg-card/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm">
             <TabsTrigger value="donate" className="data-[state=active]:glow-purple">
               <Icon name="Heart" size={20} className="mr-2" />
               Донат
@@ -92,6 +100,10 @@ const Index = () => {
             <TabsTrigger value="stream" className="data-[state=active]:glow-blue">
               <Icon name="Tv" size={20} className="mr-2" />
               Стрим
+            </TabsTrigger>
+            <TabsTrigger value="sounds" className="data-[state=active]:glow-blue">
+              <Icon name="Volume2" size={20} className="mr-2" />
+              Звуки
             </TabsTrigger>
             <TabsTrigger value="leaderboard" className="data-[state=active]:glow-pink">
               <Icon name="Trophy" size={20} className="mr-2" />
@@ -219,6 +231,13 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="sounds" className="mt-8">
+            <SoundSettings 
+              onSoundUrlChange={setDonationSoundUrl}
+              onVolumeChange={setSoundVolume}
+            />
           </TabsContent>
 
           <TabsContent value="leaderboard" className="mt-8">
