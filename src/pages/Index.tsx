@@ -5,10 +5,19 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/ui/icon';
+import DonationAlert from '@/components/DonationAlert';
+import PaymentModal from '@/components/PaymentModal';
 
 const Index = () => {
   const [donationAmount, setDonationAmount] = useState('');
   const [isLive, setIsLive] = useState(true);
+  const [currentAlert, setCurrentAlert] = useState<{ user: string; amount: number; message: string } | null>(null);
+  const [paymentModal, setPaymentModal] = useState<{ open: boolean; amount: number; tierName?: string }>({ open: false, amount: 0 });
+  const [donations, setDonations] = useState([
+    { user: 'GamerPro', amount: 500, message: 'Продолжай в том же духе! 🔥', platform: 'twitch' },
+    { user: 'StreamFan', amount: 1000, message: 'Лучший контент! 🎮', platform: 'youtube' },
+    { user: 'NeonWarrior', amount: 250, message: 'Респект! ⚡', platform: 'twitch' },
+  ]);
 
   const donationTiers = [
     {
@@ -34,11 +43,21 @@ const Index = () => {
     },
   ];
 
-  const recentDonations = [
-    { user: 'GamerPro', amount: 500, message: 'Продолжай в том же духе! 🔥', platform: 'twitch' },
-    { user: 'StreamFan', amount: 1000, message: 'Лучший контент! 🎮', platform: 'youtube' },
-    { user: 'NeonWarrior', amount: 250, message: 'Респект! ⚡', platform: 'twitch' },
-  ];
+  const handlePaymentComplete = (data: { user: string; amount: number; message: string }) => {
+    setCurrentAlert(data);
+    setDonations(prev => [{ ...data, platform: 'card' }, ...prev].slice(0, 10));
+  };
+
+  const openPaymentModal = (amount: number, tierName?: string) => {
+    setPaymentModal({ open: true, amount, tierName });
+  };
+
+  const handleCustomDonation = () => {
+    const amount = parseInt(donationAmount);
+    if (amount && amount > 0) {
+      openPaymentModal(amount);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background bg-grid">
@@ -106,7 +125,10 @@ const Index = () => {
                         </li>
                       ))}
                     </ul>
-                    <Button className="w-full bg-white/20 hover:bg-white/30 text-white border-0">
+                    <Button 
+                      className="w-full bg-white/20 hover:bg-white/30 text-white border-0"
+                      onClick={() => openPaymentModal(tier.amount, tier.name)}
+                    >
                       Выбрать
                     </Button>
                   </CardContent>
@@ -130,7 +152,11 @@ const Index = () => {
                     onChange={(e) => setDonationAmount(e.target.value)}
                     className="bg-input/50 border-primary/50 text-lg"
                   />
-                  <Button className="bg-primary hover:bg-primary/90 glow-purple px-8">
+                  <Button 
+                    className="bg-primary hover:bg-primary/90 glow-purple px-8"
+                    onClick={handleCustomDonation}
+                    disabled={!donationAmount || parseInt(donationAmount) <= 0}
+                  >
                     <Icon name="Send" size={20} className="mr-2" />
                     Отправить
                   </Button>
@@ -206,7 +232,7 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentDonations.map((donation, index) => (
+                  {donations.map((donation, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between p-4 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors animate-fade-in border border-primary/20"
@@ -247,6 +273,23 @@ const Index = () => {
           </p>
         </footer>
       </div>
+
+      {currentAlert && (
+        <DonationAlert
+          user={currentAlert.user}
+          amount={currentAlert.amount}
+          message={currentAlert.message}
+          onComplete={() => setCurrentAlert(null)}
+        />
+      )}
+
+      <PaymentModal
+        open={paymentModal.open}
+        onClose={() => setPaymentModal({ open: false, amount: 0 })}
+        amount={paymentModal.amount}
+        tierName={paymentModal.tierName}
+        onPaymentComplete={handlePaymentComplete}
+      />
     </div>
   );
 };
