@@ -8,6 +8,7 @@ import Icon from '@/components/ui/icon';
 import DonationAlert from '@/components/DonationAlert';
 import PaymentModal from '@/components/PaymentModal';
 import SoundSettings from '@/components/SoundSettings';
+import OBSWidget from '@/components/OBSWidget';
 
 const Index = () => {
   const [donationAmount, setDonationAmount] = useState('');
@@ -15,9 +16,9 @@ const Index = () => {
   const [currentAlert, setCurrentAlert] = useState<{ user: string; amount: number; message: string } | null>(null);
   const [paymentModal, setPaymentModal] = useState<{ open: boolean; amount: number; tierName?: string }>({ open: false, amount: 0 });
   const [donations, setDonations] = useState([
-    { user: 'GamerPro', amount: 500, message: 'Продолжай в том же духе! 🔥', platform: 'twitch' },
-    { user: 'StreamFan', amount: 1000, message: 'Лучший контент! 🎮', platform: 'youtube' },
-    { user: 'NeonWarrior', amount: 250, message: 'Респект! ⚡', platform: 'twitch' },
+    { user: 'GamerPro', amount: 500, message: 'Продолжай в том же духе! 🔥', platform: 'twitch', total: 2500 },
+    { user: 'StreamFan', amount: 1000, message: 'Лучший контент! 🎮', platform: 'youtube', total: 5000 },
+    { user: 'NeonWarrior', amount: 250, message: 'Респект! ⚡', platform: 'twitch', total: 1250 },
   ]);
   const [donationSoundUrl, setDonationSoundUrl] = useState('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
   const [soundVolume, setSoundVolume] = useState(70);
@@ -46,6 +47,14 @@ const Index = () => {
     },
   ];
 
+  const getUserRank = (total: number) => {
+    if (total >= 10000) return { name: 'Легенда', icon: 'Crown', color: 'text-yellow-400' };
+    if (total >= 5000) return { name: 'Мастер', icon: 'Star', color: 'text-purple-400' };
+    if (total >= 2000) return { name: 'Герой', icon: 'Award', color: 'text-blue-400' };
+    if (total >= 1000) return { name: 'Воин', icon: 'Sword', color: 'text-green-400' };
+    return { name: 'Новичок', icon: 'Zap', color: 'text-gray-400' };
+  };
+
   const handlePaymentComplete = (data: { user: string; amount: number; message: string }) => {
     if (donationSoundUrl) {
       const audio = new Audio(donationSoundUrl);
@@ -53,7 +62,12 @@ const Index = () => {
       audio.play().catch(() => console.log('Не удалось воспроизвести звук'));
     }
     setCurrentAlert(data);
-    setDonations(prev => [{ ...data, platform: 'card' }, ...prev].slice(0, 10));
+    setDonations(prev => {
+      const existingUser = prev.find(d => d.user === data.user);
+      const newTotal = existingUser ? existingUser.total + data.amount : data.amount;
+      const newDonation = { ...data, platform: 'card', total: newTotal };
+      return [newDonation, ...prev.filter(d => d.user !== data.user)].slice(0, 10);
+    });
   };
 
   const openPaymentModal = (amount: number, tierName?: string) => {
@@ -92,7 +106,7 @@ const Index = () => {
         </header>
 
         <Tabs defaultValue="donate" className="max-w-6xl mx-auto mb-16">
-          <TabsList className="grid w-full grid-cols-4 bg-card/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-5 bg-card/50 backdrop-blur-sm">
             <TabsTrigger value="donate" className="data-[state=active]:glow-purple">
               <Icon name="Heart" size={20} className="mr-2" />
               Донат
@@ -104,6 +118,10 @@ const Index = () => {
             <TabsTrigger value="sounds" className="data-[state=active]:glow-blue">
               <Icon name="Volume2" size={20} className="mr-2" />
               Звуки
+            </TabsTrigger>
+            <TabsTrigger value="obs" className="data-[state=active]:glow-purple">
+              <Icon name="Monitor" size={20} className="mr-2" />
+              OBS
             </TabsTrigger>
             <TabsTrigger value="leaderboard" className="data-[state=active]:glow-pink">
               <Icon name="Trophy" size={20} className="mr-2" />
@@ -240,6 +258,13 @@ const Index = () => {
             />
           </TabsContent>
 
+          <TabsContent value="obs" className="mt-8">
+            <OBSWidget 
+              soundUrl={donationSoundUrl}
+              volume={soundVolume}
+            />
+          </TabsContent>
+
           <TabsContent value="leaderboard" className="mt-8">
             <Card className="bg-card/80 backdrop-blur-sm border-secondary/30 glow-pink">
               <CardHeader>
@@ -264,6 +289,15 @@ const Index = () => {
                         <div>
                           <div className="font-bold flex items-center gap-2">
                             {donation.user}
+                            {(() => {
+                              const rank = getUserRank(donation.total);
+                              return (
+                                <Badge variant="outline" className={`text-xs ${rank.color}`}>
+                                  <Icon name={rank.icon as any} size={12} className="mr-1" />
+                                  {rank.name}
+                                </Badge>
+                              );
+                            })()}
                             <Badge variant="outline" className="text-xs">
                               {donation.platform === 'twitch' ? (
                                 <Icon name="Tv" size={12} className="mr-1" />
@@ -274,6 +308,7 @@ const Index = () => {
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground">{donation.message}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Всего задонатил: {donation.total}₽</p>
                         </div>
                       </div>
                       <div className="text-2xl font-bold text-primary">{donation.amount}₽</div>
